@@ -8,7 +8,13 @@
     <Grid Margin="8">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
+            <!-- Row 0：图层汇总表 -->
             <RowDefinition Height="Auto"/>
+            <!-- Row 1：GridSplitter -->
+            <RowDefinition Height="*"/>
+            <!-- Row 2：错误明细表 -->
+            <RowDefinition Height="Auto"/>
+            <!-- Row 3：底部按钮 -->
         </Grid.RowDefinitions>
 
         <DataGrid Grid.Row="0"
@@ -96,8 +102,41 @@
                     <DataGridTextColumn Header="重复数" Binding="{Binding DuplicateCount}" Width="Auto"/>
             </DataGrid.Columns>
         </DataGrid>
+        
+        <GridSplitter Grid.Row="1" Height="4" HorizontalAlignment="Stretch"
+                  Background="#CCCCCC" ResizeBehavior="PreviousAndNext"/>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
+        <DockPanel Grid.Row="2">
+            <TextBlock DockPanel.Dock="Top" Text="错误明细" FontWeight="Bold" Margin="0,4,0,4" Foreground="#ffffff"/>  
+            <DataGrid ItemsSource="{Binding AllIssues}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      GridLinesVisibility="Horizontal"
+                      Background="#F0F0F0"
+                      RowBackground="White"
+                      AlternatingRowBackground="#FFF8E1"
+                      HeadersVisibility="Column"
+                      BorderBrush="#CCCCCC"
+                      BorderThickness="1">
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#E65100"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="FontWeight" Value="Bold"/>
+                        <Setter Property="Padding" Value="8,4"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="图层" Binding="{Binding LayerName}" Width="Auto"/>
+                    <DataGridTextColumn Header="OID" Binding="{Binding ObjectID}" Width="60"/>
+                    <DataGridTextColumn Header="类型" Binding="{Binding IssueType}" Width="70"/>
+                    <DataGridTextColumn Header="字段" Binding="{Binding Field}" Width="80"/>
+                    <DataGridTextColumn Header="描述" Binding="{Binding Description}" Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </DockPanel>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0">
             <Button Content="开始检查" Width="80" Margin="0,0,8,0"
                     Command="{Binding CheckCommand}"
                     IsEnabled="{Binding IsNotChecking}"/>

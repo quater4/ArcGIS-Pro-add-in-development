@@ -11,6 +11,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.IO;
+using System.Security.Cryptography.X509Certificates;
+using System.Security.Policy;
 
 namespace XYL_Tools
 {
@@ -98,6 +100,8 @@ namespace XYL_Tools
             return value;
         }
 
+        public ObservableCollection<FeatureIssue> AllIssues { get; set; } = new ObservableCollection<FeatureIssue>();
+
         private async Task RunCheckAsync()
         {
             var map = MapView.Active?.Map;
@@ -112,6 +116,7 @@ namespace XYL_Tools
 
             try
             {
+                var allIssues = new List<FeatureIssue>();
                 await QueuedTask.Run(() =>
                 {
                     var layers = map.GetLayersAsFlattenedList();
@@ -119,6 +124,7 @@ namespace XYL_Tools
                     {
                         if (layer is FeatureLayer featureLayer)
                         {
+
                             using var featureClass = featureLayer.GetFeatureClass();
                             if (featureClass == null) continue;
 
@@ -132,6 +138,10 @@ namespace XYL_Tools
                             var fields = definition.GetFields();
                             int fieldCount = fields.Count;
 
+                            string oidFieldName = definition.GetObjectIDField();
+                            int oidIndex = definition.FindField(oidFieldName);
+
+
                             var checkFieldIndices = new List<int>();
                             for (int i = 0; i < fields.Count; i++)
                             {
@@ -144,25 +154,61 @@ namespace XYL_Tools
                             int geometryErrorCount = 0;
                             var valueCounts = new Dictionary<string, int>();
 
+                            var keyToOids = new Dictionary<string, List<long>>();
+
                             using var cursor = featureClass.Search(new QueryFilter(), false);
                             while (cursor.MoveNext())
                             {
                                 using var row = cursor.Current;
+                                long oid = Convert.ToInt64(row[oidIndex]); //获取当前行的oid 
 
+                                // 1:检查字段值是否为 NULL
                                 foreach (int i in checkFieldIndices)
                                 {
                                     var value = row[i];
                                     if (value == null || value == DBNull.Value)
+                                    {
                                         nullCount++;
+                                        allIssues.Add(new FeatureIssue
+                                        {
+                                            LayerName = layer.Name,
+                                            ObjectID = oid,
+                                            IssueType = "NULL",
+                                            Field = fields[i].Name,
+                                            Description = $"字段 {fields[i].Name} 的值为 NULL"
+                                        });
+                                    }
                                 }
 
+                                // 2:检查几何图形是否为空或自相交
                                 var feature = row as ArcGIS.Core.Data.Feature;
                                 var geometry = feature?.GetShape();
                                 if (geometry == null || geometry.IsEmpty)
+                                {
                                     geometryErrorCount++;
+                                    allIssues.Add(new FeatureIssue
+                                    {
+                                        LayerName = layer.Name,
+                                        ObjectID = oid,
+                                        IssueType = "GeometryError",
+                                        Field = "Shape",
+                                        Description = "几何图形为空或无效"
+                                    });
+                                }
                                 else if (!GeometryEngine.Instance.IsSimpleAsFeature(geometry, true))
+                                {
                                     geometryErrorCount++;
+                                    allIssues.Add(new FeatureIssue
+                                    {
+                                        LayerName = layer.Name,
+                                        ObjectID = oid,
+                                        IssueType = "GeometryError",
+                                        Field = "Shape",
+                                        Description = "几何图形自相交或未闭合"
+                                    });
+                                }
 
+                                // 3:检查重复要素（基于所有非 OID 和非几何字段的组合值）
                                 var keyParts = new List<string>();
                                 foreach (int i in checkFieldIndices)
                                 {
@@ -170,13 +216,33 @@ namespace XYL_Tools
                                     keyParts.Add(value == null || value == DBNull.Value ? "[NULL]" : value.ToString());
                                 }
                                 string key = string.Join("|", keyParts);
-                                if (valueCounts.ContainsKey(key))
-                                    valueCounts[key]++;
+                                if (keyToOids.ContainsKey(key))
+                                    keyToOids[key].Add(oid);
                                 else
-                                    valueCounts[key] = 1;
+                                    keyToOids[key] = new List<long> { oid };
                             }
 
-                            int duplicateCount = valueCounts.Values.Sum(c => c > 1 ? c - 1 : 0);
+                            // 遍历结束后，处理重复：出现多次的 key 下所有 OID 都算重复
+                            int duplicateCount = 0;
+
+                            foreach (var kvp in keyToOids) 
+                            {
+                                if (kvp.Value.Count > 1)
+                                {
+                                    duplicateCount += kvp.Value.Count - 1;
+                                    foreach (var oid in kvp.Value)
+                                    {
+                                        allIssues.Add(new FeatureIssue
+                                        {
+                                            LayerName = layer.Name,
+                                            ObjectID =oid,
+                                            IssueType = "Duplicate",
+                                            Field = "-",
+                                            Description = $"重复要素,共{kvp.Value.Count}条相同记录"
+                                        });
+                                    }
+                                }
+                            }
 
                             results.Add(new LayerCheckResult(
                                 layer.Name,
@@ -192,15 +258,20 @@ namespace XYL_Tools
                         }
                     }
                 });
+
+                // 更新 UI
+                LayerResults.Clear();
+                foreach (var r in results)
+                    LayerResults.Add(r);
+                AllIssues.Clear();
+                foreach (var i in allIssues)
+                    AllIssues.Add(i);
             }
             finally
             {
                 IsChecking = false;
             }
 
-            LayerResults.Clear();
-            foreach (var r in results)
-                LayerResults.Add(r);
         }
     }
 }
