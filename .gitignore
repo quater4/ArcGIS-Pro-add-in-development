@@ -1,0 +1,22 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# .NET build output
+bin/
+obj/
+
+# Build configurations
+Debug/
+Release/
+
+# Rider
+.idea/
+
+# NuGet
+packages/
+
+# OS
+.DS_Store
+Thumbs.db
