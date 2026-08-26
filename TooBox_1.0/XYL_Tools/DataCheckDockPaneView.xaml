@@ -14,7 +14,6 @@
         <DataGrid Grid.Row="0"
                   ItemsSource="{Binding LayerResults}"
                   AutoGenerateColumns="False"
-                  CanUserResizeColumns="False"
                   IsReadOnly="True"
                   GridLinesVisibility="Horizontal"
                   Background="#F0F0F0"
@@ -27,6 +26,17 @@
             <!-- 表头样式：深蓝背景 + 白色加粗文字 -->
             <DataGrid.ColumnHeaderStyle>
                 <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="ContentTemplate">
+                        <Setter.Value>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" 
+                               TextTrimming="None" 
+                               TextWrapping="NoWrap"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"/>
+                            </DataTemplate>
+                        </Setter.Value>
+                    </Setter>
                     <Setter Property="Background" Value="#2C3E50"/>
                     <Setter Property="Foreground" Value="White"/>
                     <Setter Property="FontWeight" Value="Bold"/>
@@ -51,7 +61,7 @@
             </DataGrid.RowStyle>
 
             <DataGrid.Columns>
-                <DataGridTextColumn Header="状态" Width="60" Binding="{Binding Status}">
+                <DataGridTextColumn Header="状态" Width="Auto" Binding="{Binding Status}">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Center"/>
@@ -76,14 +86,14 @@
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTextColumn Header="图层" Binding="{Binding LayerName}" Width="*"/>
-                <DataGridTextColumn Header="类型" Binding="{Binding ShapeType}" Width="60"/>
-                <DataGridTextColumn Header="要素数" Binding="{Binding FeatureCount}" Width="70"/>
-                <DataGridTextColumn Header="空间参考" Binding="{Binding SpatialReference}" Width="120"/>
-                <DataGridTextColumn Header="字段数" Binding="{Binding FieldCount}" Width="50"/>
-                <DataGridTextColumn Header="NULL数" Binding="{Binding NullCount}" Width="50"/>
-                <DataGridTextColumn Header="几何错误" Binding="{Binding GeometryErrorCount}" Width="60"/>
-                <DataGridTextColumn Header="重复数" Binding="{Binding DuplicateCount}" Width="50"/>
+                <DataGridTextColumn Header="图层" Binding="{Binding LayerName}" Width="Auto"/>
+                <DataGridTextColumn Header="类型" Binding="{Binding ShapeType}" Width="Auto"/>
+                <DataGridTextColumn Header="要素数" Binding="{Binding FeatureCount}" Width="Auto"/>
+                <DataGridTextColumn Header="空间参考" Binding="{Binding SpatialReference}" Width="Auto"/>
+                    <DataGridTextColumn Header="字段数" Binding="{Binding FieldCount}" Width="Auto"/>
+                    <DataGridTextColumn Header="NULL数" Binding="{Binding NullCount}" Width="Auto"/>
+                    <DataGridTextColumn Header="几何错误" Binding="{Binding GeometryErrorCount}" Width="Auto"/>
+                    <DataGridTextColumn Header="重复数" Binding="{Binding DuplicateCount}" Width="Auto"/>
             </DataGrid.Columns>
         </DataGrid>
 
