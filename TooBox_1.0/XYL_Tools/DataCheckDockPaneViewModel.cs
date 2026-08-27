@@ -7,25 +7,25 @@ using ArcGIS.Desktop.Mapping;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using System.IO;
-using System.Security.Cryptography.X509Certificates;
-using System.Security.Policy;
 
 namespace XYL_Tools
 {
     internal class DataCheckDockPaneViewModel : DockPane
     {
+        private FeatureIssue _selectedIssue; // 当前选中的问题要素
         private static DataCheckDockPaneViewModel _instance;
         public static DataCheckDockPaneViewModel Instance => _instance;
 
+        // 检查结果集合
         public ObservableCollection<LayerCheckResult> LayerResults { get; set; }
             = new ObservableCollection<LayerCheckResult>();
 
         private bool _isChecking;
-        public bool IsChecking
+        public bool IsChecking  // 是否正在执行检查
         {
             get => _isChecking;
             set
@@ -36,16 +36,75 @@ namespace XYL_Tools
             }
         }
 
-        public bool IsNotChecking => !IsChecking;
+        public bool IsNotChecking => !IsChecking;  // 是否未执行检查
 
-        public ICommand ExportCommand { get; }
+        public ICommand LocateIssueCommand { get; }    // 定位问题要素命令
+        public ICommand ExportCommand { get; }  // 导出检查结果为 CSV 命令
 
-        public ICommand CheckCommand { get; }
+        public ICommand CheckCommand { get; }  // 执行检查命令
 
+
+        public FeatureIssue SelectedIssue  // 当前选中的问题要素
+        {
+            get
+            {
+                return _selectedIssue;
+            }
+            set
+            {
+                _selectedIssue = value;
+                NotifyPropertyChanged();
+                (LocateIssueCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            }
+        }
+
+        // 构造函数
         public DataCheckDockPaneViewModel()
         {
+            LocateIssueCommand = new RelayCommand(async () => await LocateIssueAsync(SelectedIssue),
+                () => SelectedIssue != null && IsNotChecking);
             ExportCommand = new RelayCommand(ExportToCsv, () => LayerResults.Count > 0);
             CheckCommand = new RelayCommand(async () => await RunCheckAsync(), () => IsNotChecking);
+        }
+
+        // 定位问题要素
+        private async Task LocateIssueAsync(FeatureIssue issue)
+        {
+            var mapView = MapView.Active;
+            if (mapView == null || string.IsNullOrEmpty(issue.LayerName))
+                return;
+
+            await QueuedTask.Run(() =>
+            {
+                // 1. 找到对应图层
+                var layer = mapView.Map.FindLayers(issue.LayerName).FirstOrDefault() as FeatureLayer;
+                if (layer == null) return;
+
+                // 2. 按OID构造查询过滤器
+                var queryFilter = new QueryFilter
+                {
+                    ObjectIDs = new List<long> { issue.ObjectID }
+                };
+
+                // 3. 选中该要素（替换原有选择集）
+                layer.Select(queryFilter, SelectionCombinationMethod.New);
+
+                // 4. 获取要素几何并缩放
+                using var featureClass = layer.GetFeatureClass();
+                using var cursor = featureClass.Search(queryFilter, false);
+                if (cursor.MoveNext())
+                {
+                    using var feature = cursor.Current as Feature;
+                    var geometry = feature?.GetShape();
+                    if (geometry != null && !geometry.IsEmpty)
+                    {
+                        // 缩放至要素外扩1.5倍的范围，避免贴边
+                        var extent = geometry.Extent;
+                        extent.Expand(1.5, 1.5, true);
+                        mapView.ZoomTo(extent);
+                    }
+                }
+            });
         }
 
         protected override void OnShow(bool isFirstTime)
@@ -54,6 +113,7 @@ namespace XYL_Tools
             _instance = this;
         }
 
+        // 导出检查结果为 CSV 文件
         private void ExportToCsv()
         {
             var dialog = new Microsoft.Win32.SaveFileDialog
@@ -92,6 +152,7 @@ namespace XYL_Tools
             File.WriteAllLines(dialog.FileName, lines, new System.Text.UTF8Encoding(true));
         }
 
+        // 字段值含逗号或引号时用双引号包裹
         private string EscapeCsv(string value)
         {
             if (string.IsNullOrEmpty(value)) return "";
@@ -102,6 +163,7 @@ namespace XYL_Tools
 
         public ObservableCollection<FeatureIssue> AllIssues { get; set; } = new ObservableCollection<FeatureIssue>();
 
+        // 执行检查
         private async Task RunCheckAsync()
         {
             var map = MapView.Active?.Map;

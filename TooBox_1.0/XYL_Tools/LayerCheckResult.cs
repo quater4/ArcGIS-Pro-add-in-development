@@ -1,8 +1,4 @@
-﻿using ArcGIS.Core.CIM;
-using System;
-using System.Collections.Generic;
-using System.Text;
-namespace XYL_Tools
+﻿namespace XYL_Tools
 {
     internal class LayerCheckResult
     {
