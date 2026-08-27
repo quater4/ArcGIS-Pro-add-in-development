@@ -1,54 +1,29 @@
 ﻿namespace XYL_Tools.Models
 {
-    internal class LayerCheckResult
+    internal class LayerCheckResult(string layerName, string shapeType,
+        long featureCount, string spatialReference,
+        int fieldCount, bool spatialReferenceEnabled,
+        int nullcnt, int geometryErrorCnt, int duplicateRows)
     {
 
 
-        // properties of the layer check result
-        public string LayerName { get; set; } = string.Empty;
-        public string ShapeType { get; set; } = string.Empty;
-        public long FeatureCount { get; set; } = 0;
-        public string SpatialReference { get; set; } = string.Empty;
-        public int FieldCount { get; set; } = 0;
-        public bool SpatialReferenceEnabled { get; set; }
-        public int NullCount { get; set; } = 0;
+        // 检查结果状态
+        public string LayerName { get; set; } = layerName;
+        public string ShapeType { get; set; } = shapeType;
+        public long FeatureCount { get; set; } = featureCount;
+        public string SpatialReference { get; set; } = spatialReference;
+        public int FieldCount { get; set; } = fieldCount;
+        public bool SpatialReferenceEnabled { get; set; } = spatialReferenceEnabled;
+        public int NullCount { get; set; } = nullcnt;
 
-        public int GeometryErrorCount { get; set; } = 0;
-        public int DuplicateCount { get; set; } = 0;
+        public int GeometryErrorCount { get; set; } = geometryErrorCnt;
+        public int DuplicateCount { get; set; } = duplicateRows;
 
+        // 检查结果状态
         public CheckStatus Status
         {
-            get
-            {
-                if(GeometryErrorCount > 0 || !SpatialReferenceEnabled)
-                {
-                    return CheckStatus.Error;
-                }
-                else if(NullCount > 0 || DuplicateCount > 0)
-                {
-                    return CheckStatus.Warning;
-                }
-                else
-                {
-                    return CheckStatus.Normal;
-                }
-            }
-
-        }
-        public LayerCheckResult(string layerName, string shapeType, 
-            long featureCount , string spatialReference, 
-            int fieldCount ,bool spatialReferenceEnabled,
-            int nullcnt, int geometryErrorCnt, int duplicateRows)
-        {
-            LayerName = layerName;
-            ShapeType = shapeType;
-            FeatureCount = featureCount;
-            SpatialReference = spatialReference;
-            FieldCount = fieldCount;
-            SpatialReferenceEnabled = spatialReferenceEnabled;
-            NullCount = nullcnt;
-            GeometryErrorCount = geometryErrorCnt;
-            DuplicateCount = duplicateRows;
+            get;
+            set;
         }
     }
 }

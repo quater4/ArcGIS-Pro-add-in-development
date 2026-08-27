@@ -68,16 +68,38 @@ namespace XYL_Tools
             _instance = this;
         }
 
+        public CheckOptions CheckOptions { get; set; } = new();
+
         /// <summary>
         /// 执行检查：只调用 Service，不写具体检查逻辑
         /// </summary>
         private async Task RunCheckAsync()
         {
+            var mapView = MapView.Active;
             var map = MapView.Active?.Map;
             if (map == null)
             {
                 ArcGIS.Desktop.Framework.Dialogs.MessageBox.Show("No active map found.");
                 return;
+            }
+
+            // 获取要检查的图层列表
+            IEnumerable<FeatureLayer> targetLayers;
+            if (CheckOptions.CheckSelectedLayers)
+            {
+                targetLayers = mapView.GetSelectedLayers().OfType<FeatureLayer>();
+                // 选中图层模式下，空选择直接提示返回，不进入后续检查
+                if (!targetLayers.Any())
+                {
+                    ArcGIS.Desktop.Framework.Dialogs.MessageBox.Show(
+                        "请在内容面板至少选中一个要素图层",
+                        "提示");
+                    return;
+                }
+            }
+            else
+            {
+                targetLayers = map.GetLayersAsFlattenedList().OfType<FeatureLayer>();
             }
 
             IsChecking = true;
@@ -90,14 +112,14 @@ namespace XYL_Tools
                 {
                     // 所有业务逻辑都交给 Service
                     var checker = new DataQualityChecker();
-                    (results, issues) = checker.CheckMap(map);
+                    (results, issues) = checker.CheckLayers(targetLayers, CheckOptions);
                 });
 
-                // 更新 UI
-                LayerResults = new ObservableCollection<LayerCheckResult>(results);
-                NotifyPropertyChanged(nameof(LayerResults));
-                AllIssues = new ObservableCollection<FeatureIssue>(issues);
-                NotifyPropertyChanged(nameof(AllIssues));
+                // 更新 UI 数据
+                LayerResults.Clear();
+                foreach (var r in results) LayerResults.Add(r);
+                AllIssues.Clear();
+                foreach (var i in issues) AllIssues.Add(i);
             }
             finally
             {

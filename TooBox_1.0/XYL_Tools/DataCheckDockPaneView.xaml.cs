@@ -22,5 +22,14 @@ namespace XYL_Tools
         {
             InitializeComponent();
         }
+        private void ErrorGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (DataContext is DataCheckDockPaneViewModel vm
+                && vm.LocateIssueCommand.CanExecute(null))
+            {
+                vm.LocateIssueCommand.Execute(null);
+            }
+        }
+
     }
 }
