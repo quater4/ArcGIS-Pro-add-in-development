@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace XYL_Tools
+namespace XYL_Tools.Models
 {
     internal class FeatureIssue
     {

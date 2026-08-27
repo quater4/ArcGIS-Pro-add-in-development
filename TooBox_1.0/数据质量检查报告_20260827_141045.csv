@@ -1,0 +1,4 @@
+﻿图层,类型,要素数,空间参考,字段数,NULL数,几何错误,重复数,状态
+博物馆_,Point,1060,WGS_1984_UTM_Zone_51N,21,9699,0,0,警告
+bound,Polygon,894,GCS_Xian_1980,7,0,0,0,正常
+长三角矢量_Dissolve,Polygon,4,WGS_1984_UTM_Zone_51N,5,0,0,0,正常

@@ -1,4 +1,4 @@
-﻿namespace XYL_Tools
+﻿namespace XYL_Tools.Models
 {
     internal class LayerCheckResult
     {
